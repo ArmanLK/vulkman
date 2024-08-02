@@ -1,0 +1,5 @@
+-Werror
+-Wall
+-lglfw
+-lvulkan
+-ldl
