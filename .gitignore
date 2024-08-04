@@ -3,7 +3,7 @@
 *.a
 *.pyc
 zig_out/
-.zig_cache/
+.zig-cache/
 
 vulkman
 
