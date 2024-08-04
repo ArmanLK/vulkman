@@ -1,0 +1,12 @@
+*.o
+*.so
+*.a
+*.pyc
+zig_out/
+.zig_cache/
+
+vulkman
+
+#emacs
+\#.*\#
+*~
