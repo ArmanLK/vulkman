@@ -2,19 +2,18 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
-#include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <optional>
 #include <set>
-#include <stdexcept>
 #include <vector>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
+
+const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -100,6 +99,15 @@ class HelloTriangleApplication {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
+
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
+
     void initWindow() {
         glfwInit();
 
@@ -119,19 +127,44 @@ class HelloTriangleApplication {
         createImageViews();
         createRenderPass();
         createGraphicsPipeline();
+        // and finally
+        createFrameBuffers();
+        createCommandPool();
+        createCommandBuffers();
+        // the problem webdevs can't handle
+        createSyncObjects();
     }
 
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            drawFrame();
         }
+
+        vkDeviceWaitIdle(device);
     }
 
     void cleanup() {
+        // these function somehow called in reverse (vkDestroy family of
+        // functions create a stack of cleanup requests)
+
+        vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+        vkDestroyFence(device, inFlightFence, nullptr);
+
+        vkDestroyCommandPool(device, commandPool, nullptr);
+
+        for (VkFramebuffer &frameBuffer : swapChainFramebuffers) {
+            vkDestroyFramebuffer(device, frameBuffer, nullptr);
+        }
+
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
 
+        // We are responible for imageViews because we created them. images
+        // themselves are handled by someone else so they don't need cleanup
+        // here.
         for (auto imageView : swapChainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
         }
@@ -149,6 +182,57 @@ class HelloTriangleApplication {
         glfwDestroyWindow(window);
 
         glfwTerminate();
+    }
+
+    void drawFrame() {
+        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &inFlightFence);
+
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+                              imageAvailableSemaphore, VK_NULL_HANDLE,
+                              &imageIndex);
+
+        vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
+        recordCommandBuffer(commandBuffer, imageIndex);
+
+        VkSemaphore signalSemaphores[] = {
+            renderFinishedSemaphore,
+        };
+        VkSemaphore waitSemaphores[] = {
+            imageAvailableSemaphore,
+        };
+        VkPipelineStageFlags waitStages[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        };
+
+        VkSubmitInfo submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = waitSemaphores,
+            .pWaitDstStageMask = waitStages,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &commandBuffer,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = signalSemaphores,
+        };
+
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkSwapchainKHR swapChains[] = {swapChain};
+        VkPresentInfoKHR presentInfo{
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = signalSemaphores,
+            .swapchainCount = 1,
+            .pSwapchains = swapChains,
+            .pImageIndices = &imageIndex,
+        };
+
+        vkQueuePresentKHR(presentQueue, &presentInfo);
     }
 
     void createInstance() {
@@ -171,7 +255,7 @@ class HelloTriangleApplication {
             .pApplicationInfo = &appInfo,
         };
 
-        auto extensions = getRequiredExtensions();
+        std::vector<const char *> extensions = getRequiredExtensions();
         createInfo.enabledExtensionCount =
             static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -566,6 +650,145 @@ class HelloTriangleApplication {
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    }
+
+    void createFrameBuffers() {
+        swapChainFramebuffers.resize(swapChainImageViews.size());
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            VkImageView attachments[] = {
+                swapChainImageViews[i],
+            };
+
+            VkFramebufferCreateInfo frameBufferInfo{
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .renderPass = renderPass,
+                .attachmentCount = 1,
+                .pAttachments = attachments,
+                .width = swapChainExtent.width,
+                .height = swapChainExtent.height,
+                .layers = 1,
+            };
+
+            if (vkCreateFramebuffer(device, &frameBufferInfo, nullptr,
+                                    &swapChainFramebuffers[i]) != VK_SUCCESS) {
+                std::cerr << "failed to create frame buffer " << i << '\n';
+                throw std::runtime_error("failed to create frame buffer");
+            }
+        }
+    }
+
+    void createCommandPool() {
+        QueueFamilyIndices queueFamilyIndices =
+            findQueueFamilies(physicalDevice);
+
+        VkCommandPoolCreateInfo poolInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
+        };
+
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create  command pool!");
+        }
+    }
+
+    void createCommandBuffers() {
+        VkCommandBufferAllocateInfo allocInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = commandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffer");
+        }
+    }
+
+    void createSyncObjects() {
+        VkSemaphoreCreateInfo semaphoreInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        };
+
+        VkFenceCreateInfo fenceInfo{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            // without this our program will block in start and we never run
+            // anything!
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+        };
+
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr,
+                              &imageAvailableSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr,
+                              &renderFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) !=
+                VK_SUCCESS) {
+            throw std::runtime_error(
+                "failed to create synchronization objects for a frame!");
+        }
+    }
+
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, size_t imageIndex) {
+        VkCommandBufferBeginInfo beginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+
+            // optionals
+            .flags = 0,
+            .pInheritanceInfo = nullptr,
+        };
+
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error(
+                "failed to begin recording command buffer!");
+        }
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+
+        VkRenderPassBeginInfo renderPassInfo{
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = renderPass,
+            .framebuffer = swapChainFramebuffers[imageIndex],
+            .renderArea =
+                {
+                    .offset = {0, 0},
+                    .extent = swapChainExtent,
+                },
+            .clearValueCount = 1,
+            .pClearValues = &clearColor,
+        };
+
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          graphicsPipeline);
+
+        VkViewport viewport{
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = (float)swapChainExtent.width,
+            .height = (float)swapChainExtent.height,
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        };
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{
+            .offset = {0, 0},
+            .extent = swapChainExtent,
+        };
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(commandBuffer);
+
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer");
+        }
     }
 
     VkShaderModule createShaderModule(const std::vector<char> &code) {
