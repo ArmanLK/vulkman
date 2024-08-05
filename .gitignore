@@ -1,7 +1,9 @@
 *.o
 *.so
 *.a
+*.spv
 *.pyc
+
 zig_out/
 .zig-cache/
 
