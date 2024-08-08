@@ -626,8 +626,8 @@ class HelloTriangleApplication {
             .polygonMode = VK_POLYGON_MODE_FILL,
             .cullMode = VK_CULL_MODE_BACK_BIT,
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
-            .lineWidth = 1.0f,
             .depthBiasEnable = VK_FALSE,
+            .lineWidth = 1.0f,
         };
 
         VkPipelineMultisampleStateCreateInfo multisampling{
@@ -637,10 +637,10 @@ class HelloTriangleApplication {
         };
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{
+            .blendEnable = VK_FALSE,
             .colorWriteMask =
                 VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-            .blendEnable = VK_FALSE,
         };
 
         VkPipelineColorBlendStateCreateInfo colorBlending{
