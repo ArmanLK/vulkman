@@ -6,13 +6,11 @@ pub fn build(b: *std.Build) void {
 
     const triangle = b.addExecutable(.{
         .name = "triangle",
-        //.root_source_file = b.path("src/vulkman.cpp"),
         .target = target,
         .optimize = optimize,
-        //.use_lld = true,
-        //.pic = true,
         .linkage = .dynamic,
     });
+
     triangle.linkLibCpp();
     triangle.linkSystemLibrary("vulkan");
     triangle.linkSystemLibrary("glfw");
@@ -30,14 +28,44 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(triangle);
 
-    const run_cmd = b.addRunArtifact(triangle);
+    const triangle_run_cmd = b.addRunArtifact(triangle);
 
-    run_cmd.step.dependOn(b.getInstallStep());
+    const rectangle = b.addExecutable(.{
+        .name = "rectangle",
+        .target = target,
+        .optimize = optimize,
+        .linkage = .dynamic,
+    });
+
+    rectangle.linkLibCpp();
+    rectangle.linkSystemLibrary("vulkan");
+    rectangle.linkSystemLibrary("glfw");
+    rectangle.addCSourceFiles(.{
+        .root = .{ .cwd_relative = "" },
+        .files = &.{
+            "src/rectangle.cpp",
+        },
+        .flags = &.{
+            "-std=c++17",
+            "-Wall",
+            "-Werror",
+        },
+    });
+
+    b.installArtifact(rectangle);
+
+    const rectangle_run_cmd = b.addRunArtifact(rectangle);
+
+    triangle_run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
-        run_cmd.addArgs(args);
+        triangle_run_cmd.addArgs(args);
+        rectangle_run_cmd.addArgs(args);
     }
 
-    const run_step = b.step("triangle", "Run the triangle demo");
-    run_step.dependOn(&run_cmd.step);
+    const triangle_run_step = b.step("triangle", "Run the triangle demo");
+    triangle_run_step.dependOn(&triangle_run_cmd.step);
+
+    const rectangle_run_step = b.step("rectangle", "Run the rectangle demo");
+    rectangle_run_step.dependOn(&rectangle_run_cmd.step);
 }
