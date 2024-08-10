@@ -24,8 +24,7 @@ pub fn build(b: *std.Build) void {
         .flags = &.{
             "-std=c++17",
             "-Wall",
-            "-Werr",
-            "-Wextra",
+            "-Werror",
         },
     });
 
