@@ -115,7 +115,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
     }
 }
 
-class HelloTriangleApplication {
+class RectangleDemo {
   public:
     void run() {
         initWindow();
@@ -1261,7 +1261,7 @@ class HelloTriangleApplication {
 
     static void framebufferResizeCallback(GLFWwindow *window, int width,
                                           int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(
+        auto app = reinterpret_cast<RectangleDemo *>(
             glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
@@ -1297,7 +1297,7 @@ class HelloTriangleApplication {
 };
 
 int main() {
-    HelloTriangleApplication app;
+    RectangleDemo app;
 
     try {
         app.run();
