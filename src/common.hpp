@@ -1,7 +1,9 @@
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include <array>
+#include <cstring>
 #include <optional>
 #include <vector>
 
@@ -55,6 +57,13 @@ struct Vertex {
 
         return attributeDescriptions;
     }
+};
+
+// first time using alignas.
+struct UniformBufferObject {
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 };
 
 inline VkResult CreateDebugUtilsMessengerEXT(
