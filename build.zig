@@ -56,13 +56,6 @@ pub fn build(b: *std.Build) void {
 
     const rectangle_run_cmd = b.addRunArtifact(rectangle);
 
-    triangle_run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        triangle_run_cmd.addArgs(args);
-        rectangle_run_cmd.addArgs(args);
-    }
-
     const rectangle_3d = b.addExecutable(.{
         .name = "rectangle_3d",
         .target = target,
@@ -99,6 +92,6 @@ pub fn build(b: *std.Build) void {
     const rectangle_run_step = b.step("rectangle", "Run the rectangle demo");
     rectangle_run_step.dependOn(&rectangle_run_cmd.step);
 
-    const rectangle_3d_run_step = b.step("rectangle_3d", "Run the rectangle demo");
+    const rectangle_3d_run_step = b.step("rectangle_3d", "Run the 3d rectangle demo");
     rectangle_3d_run_step.dependOn(&rectangle_3d_run_cmd.step);
 }
