@@ -266,11 +266,11 @@ class RectangleDemo {
 
         VkApplicationInfo appInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "Hello Triangle",
+            .pApplicationName = "Rectangle Demo",
             .pEngineName = "No Engine",
             .apiVersion = VK_API_VERSION_1_0,
         };
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 3, 0);
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
         VkInstanceCreateInfo createInfo{

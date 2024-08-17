@@ -85,6 +85,7 @@ pub fn build(b: *std.Build) void {
     triangle_run_cmd.step.dependOn(b.getInstallStep());
     rectangle_run_cmd.step.dependOn(b.getInstallStep());
     rectangle_3d_run_cmd.step.dependOn(b.getInstallStep());
+    image_run_cmd.step.dependOn(b.getInstallStep());
 
     const triangle_run_step = b.step("triangle", "Run the triangle demo");
     triangle_run_step.dependOn(&triangle_run_cmd.step);
@@ -94,4 +95,8 @@ pub fn build(b: *std.Build) void {
 
     const rectangle_3d_run_step = b.step("rectangle_3d", "Run the 3d rectangle demo");
     rectangle_3d_run_step.dependOn(&rectangle_3d_run_cmd.step);
+
+    const image_run_step = b.step("image", "Run the image demo");
+    image_run_step.dependOn(&image_run_cmd.step);
+
 }

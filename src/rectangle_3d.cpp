@@ -317,7 +317,7 @@ class Rectangle3DDemo {
 
         VkApplicationInfo appInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "Hello Triangle",
+            .pApplicationName = "3D Rectangle Demo",
             .pEngineName = "No Engine",
             .apiVersion = VK_API_VERSION_1_0,
         };
