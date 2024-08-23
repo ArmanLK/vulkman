@@ -19,4 +19,3 @@ zig build rectangle
 ```bash
 zig build rectangle_3d
 ```
-https://github.com/user-attachments/assets/571b6583-8cf5-4049-8e9c-fb1ef1313b6c
