@@ -258,7 +258,7 @@ class TriangleDemo {
 
         VkApplicationInfo appInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "Triangle Demo",
+            .pApplicationName = "Hello Triangle",
             .pEngineName = "No Engine",
             .apiVersion = VK_API_VERSION_1_0,
         };
