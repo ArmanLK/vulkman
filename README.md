@@ -19,4 +19,4 @@ zig build rectangle
 ```bash
 zig build rectangle_3d
 ```
-unfortunately I couldn't capture a video of this thing rotating (at least for now).
+https://github.com/ArmanLK/vulkman/blob/master/rectangle_3d.mkv
