@@ -108,7 +108,7 @@ class Rectangle3DDemo {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Triangle", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Rectangle3D", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
