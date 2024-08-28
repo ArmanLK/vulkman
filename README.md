@@ -19,3 +19,8 @@ zig build rectangle
 ```bash
 zig build rectangle_3d
 ```
+[Screencast_20240828_225337.webm](https://github.com/user-attachments/assets/6dca956b-3f91-4cc4-aade-ed51fa50dd16)
+
+# The Image Demo
+[Screencast_20240828_225018.webm](https://github.com/user-attachments/assets/5adde632-2992-40ad-90c6-40fe27067b50)
+
