@@ -82,6 +82,40 @@ pub fn build(b: *std.Build) void {
 
     const rectangle_3d_run_cmd = b.addRunArtifact(rectangle_3d);
 
+    const image = b.addExecutable(.{
+        .name = "image",
+        .target = target,
+        .optimize = optimize,
+        .linkage = .dynamic,
+    });
+
+    image.linkLibCpp();
+    image.linkSystemLibrary("vulkan");
+    image.linkSystemLibrary("glfw");
+    image.addCSourceFiles(.{
+        .root = .{ .cwd_relative = "" },
+        .files = &.{
+            "src/image.cpp",
+        },
+        .flags = &.{
+            "-std=c++17",
+            "-Wall",
+            "-Werror",
+            "-Iinclude/",
+        },
+    });
+
+    b.installArtifact(image);
+
+    const image_run_cmd = b.addRunArtifact(image);
+
+    if (b.args) |args| {
+        triangle_run_cmd.addArgs(args);
+        rectangle_run_cmd.addArgs(args);
+        rectangle_3d_run_cmd.addArgs(args);
+        image_run_cmd.addArgs(args);
+    }
+
     triangle_run_cmd.step.dependOn(b.getInstallStep());
     rectangle_run_cmd.step.dependOn(b.getInstallStep());
     rectangle_3d_run_cmd.step.dependOn(b.getInstallStep());
@@ -94,4 +128,7 @@ pub fn build(b: *std.Build) void {
 
     const rectangle_3d_run_step = b.step("rectangle_3d", "Run the 3d rectangle demo");
     rectangle_3d_run_step.dependOn(&rectangle_3d_run_cmd.step);
+
+    const image_run_step = b.step("image", "Run the image demo");
+    image_run_step.dependOn(&image_run_cmd.step);
 }
