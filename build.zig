@@ -82,6 +82,7 @@ pub fn build(b: *std.Build) void {
             .cwd_relative = "src/main.zig",
         },
     });
+    vulkman.linkLibrary(cglm);
     vulkman.linkSystemLibrary("vulkan");
     vulkman.linkSystemLibrary("glfw");
 

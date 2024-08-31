@@ -119,7 +119,7 @@ pub fn main() Err!void {
     // create instance
     const instance = b: {
         if (enable_validation_layers and !try checkValidationLayerSupport()) {
-            std.debug.print("validation layers requested, but not available!", .{});
+            std.log.err("validation layers requested, but not available!", .{});
             return Err.ValidationLayersNotAvailable;
         }
 
@@ -155,7 +155,7 @@ pub fn main() Err!void {
             .ppEnabledExtensionNames = extentions.items.ptr,
         };
 
-        const debug_create_info: vg.VkDebugUtilsMessengerCreateInfoEXT = .{
+        var debug_create_info: vg.VkDebugUtilsMessengerCreateInfoEXT = .{
             .sType = vg.VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity = vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                 vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -168,7 +168,7 @@ pub fn main() Err!void {
 
         if (enable_validation_layers) {
             create_info.enabledLayerCount = @intCast(validation_layers.len);
-            create_info.ppEnabledLayerNames = @ptrCast(@alignCast(&validation_layers));
+            create_info.ppEnabledLayerNames = @ptrCast(@alignCast(validation_layers));
 
             create_info.pNext = &debug_create_info;
         } else {
@@ -176,20 +176,20 @@ pub fn main() Err!void {
             create_info.pNext = null;
         }
 
-        var in_instance: vg.VkInstance = null;
+        var instance: vg.VkInstance = undefined;
         if (vg.vkCreateInstance(
             &create_info,
             gpu_allocator,
-            &in_instance,
+            &instance,
         ) != vg.VK_SUCCESS) {
             return Err.InstanceCreationFailed;
         }
 
-        break :b in_instance;
+        break :b instance;
     };
 
     // setup debug messenger
-    b: {
+    const debug_messenger = b: {
         if (!enable_validation_layers) break :b;
 
         const create_info: vg.VkDebugUtilsMessengerCreateInfoEXT = .{
@@ -203,22 +203,25 @@ pub fn main() Err!void {
             .pfnUserCallback = debugCallback,
         };
 
-        var debug_messenger: vg.VkDebugUtilsMessengerEXT = null;
-        if (enable_validation_layers) {
-            const func_ptr: vg.PFN_vkCreateDebugUtilsMessengerEXT = @ptrCast(vg.vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+        var in_debug_messenger: vg.VkDebugUtilsMessengerEXT = null;
+        const func_ptr: vg.PFN_vkCreateDebugUtilsMessengerEXT = @ptrCast(
+            vg.vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"),
+        );
 
-            if (func_ptr) |func| {
-                if (func(
-                    instance,
-                    &create_info,
-                    gpu_allocator,
-                    &debug_messenger,
-                ) != vg.VK_SUCCESS) {
-                    return Err.DebugMessengerCreationFailed;
-                }
-            } else return Err.DebugExtentionNotAvailable;
-        }
-    }
+        if (func_ptr) |func| {
+            if (func(
+                instance,
+                &create_info,
+                gpu_allocator,
+                &in_debug_messenger,
+            ) != vg.VK_SUCCESS) {
+                return Err.DebugMessengerCreationFailed;
+            }
+        } else return Err.DebugExtentionNotAvailable;
+
+        break :b in_debug_messenger;
+    };
+    _ = debug_messenger; // autofix
 
     // main loop
     return;
@@ -245,13 +248,17 @@ fn checkValidationLayerSupport() Err!bool {
         &layer_count,
         available_layers.items.ptr,
     );
-    assert(available_layers.items.len == layer_count);
+
+    // this is safe! trust me future me!
+    assert(available_layers.capacity == layer_count);
+    available_layers.items.len = layer_count;
 
     inline for (validation_layers) |layer_name| {
         var layer_found = false;
 
         for (available_layers.items) |layer_properties| {
-            if (std.mem.eql(u8, layer_name, &layer_properties.layerName)) {
+            const x = layer_properties.layerName[0..layer_name.len];
+            if (std.mem.eql(u8, layer_name, x)) {
                 layer_found = true;
                 break;
             }
@@ -273,11 +280,14 @@ fn debugCallback(
 ) callconv(.C) vg.VkBool32 {
     _ = pUserData;
     _ = messageType;
-    _ = messageSeverity;
 
-    //std::cerr << "validation layer: " << pCallbackData->pMessage
-    //<< std::endl;
-    std.log.err("validation layer: {s}", .{pCallbackData.*.pMessage});
+    if (messageSeverity & vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT != 0) {
+        std.log.info("validation layer: {s}", .{pCallbackData.*.pMessage});
+    } else if (messageSeverity & vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT != 0) {
+        std.log.warn("validation layer: {s}", .{pCallbackData.*.pMessage});
+    } else if (messageSeverity & vg.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT != 0) {
+        std.log.err("validation layer: {s}", .{pCallbackData.*.pMessage});
+    }
 
     return vg.VK_FALSE;
 }
