@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
+#include <array>
 #include <cstring>
 #include <optional>
 #include <vector>
