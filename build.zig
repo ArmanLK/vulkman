@@ -103,10 +103,10 @@ pub fn build(b: *std.Build) void {
     triangle.addCSourceFiles(.{
         .root = .{ .cwd_relative = "" },
         .files = &.{
-            "src/triangle.cpp",
+            "src/exp/triangle.cpp",
         },
         .flags = &.{
-            "-std=c++17",
+            "-std=c++20",
             "-Wall",
             "-Werror",
         },
@@ -129,10 +129,10 @@ pub fn build(b: *std.Build) void {
     rectangle.addCSourceFiles(.{
         .root = .{ .cwd_relative = "" },
         .files = &.{
-            "src/rectangle.cpp",
+            "src/exp/rectangle.cpp",
         },
         .flags = &.{
-            "-std=c++17",
+            "-std=c++20",
             "-Wall",
             "-Werror",
         },
@@ -155,7 +155,7 @@ pub fn build(b: *std.Build) void {
     rectangle_3d.addCSourceFiles(.{
         .root = .{ .cwd_relative = "" },
         .files = &.{
-            "src/rectangle_3d.cpp",
+            "src/exp/rectangle_3d.cpp",
         },
         .flags = &.{
             "-std=c++17",
@@ -181,7 +181,7 @@ pub fn build(b: *std.Build) void {
     image.addCSourceFiles(.{
         .root = .{ .cwd_relative = "" },
         .files = &.{
-            "src/image.cpp",
+            "src/exp/image.cpp",
         },
         .flags = &.{
             "-std=c++17",
