@@ -4,89 +4,31 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const cglm = b.addStaticLibrary(.{
-        .name = "cglm",
-        .target = target,
-        .optimize = b.standardOptimizeOption(.{
-            .preferred_optimize_mode = .ReleaseSafe,
-        }),
-    });
-    cglm.linkLibC();
-    cglm.addIncludePath(.{
-        .cwd_relative = "lib/cglm/include/",
-    });
-    cglm.addCSourceFiles(.{
-        .root = .{
-            .cwd_relative = "lib/cglm/",
-        },
-        .files = &.{
-            "src/euler.c",
-            "src/affine.c",
-            "src/io.c",
-            "src/quat.c",
-            "src/cam.c",
-            "src/vec2.c",
-            "src/ivec2.c",
-            "src/vec3.c",
-            "src/ivec3.c",
-            "src/vec4.c",
-            "src/ivec4.c",
-            "src/mat2.c",
-            "src/mat2x3.c",
-            "src/mat2x4.c",
-            "src/mat3.c",
-            "src/mat3x2.c",
-            "src/mat3x4.c",
-            "src/mat4.c",
-            "src/mat4x2.c",
-            "src/mat4x3.c",
-            "src/plane.c",
-            "src/frustum.c",
-            "src/box.c",
-            "src/project.c",
-            "src/sphere.c",
-            "src/ease.c",
-            "src/curve.c",
-            "src/bezier.c",
-            "src/ray.c",
-            "src/affine2d.c",
-            "src/clipspace/ortho_lh_no.c",
-            "src/clipspace/ortho_lh_zo.c",
-            "src/clipspace/ortho_rh_no.c",
-            "src/clipspace/ortho_rh_zo.c",
-            "src/clipspace/persp_lh_no.c",
-            "src/clipspace/persp_lh_zo.c",
-            "src/clipspace/persp_rh_no.c",
-            "src/clipspace/persp_rh_zo.c",
-            "src/clipspace/view_lh_no.c",
-            "src/clipspace/view_lh_zo.c",
-            "src/clipspace/view_rh_no.c",
-            "src/clipspace/view_rh_zo.c",
-            "src/clipspace/project_no.c",
-            "src/clipspace/project_zo.c",
-        },
-        .flags = &.{
-            "-Wall",
-            "-Werror",
-            "-std=c11",
-        },
-    });
-    b.installArtifact(cglm);
-
     const vulkman = b.addExecutable(.{
         .name = "vulkman",
         .target = target,
         .optimize = optimize,
         .linkage = .dynamic,
-        .root_source_file = .{
-            .cwd_relative = "src/main.zig",
-        },
     });
-    vulkman.linkLibrary(cglm);
+
+    vulkman.linkLibCpp();
     vulkman.linkSystemLibrary("vulkan");
     vulkman.linkSystemLibrary("glfw");
+    vulkman.addCSourceFiles(.{
+        .root = .{ .cwd_relative = "" },
+        .files = &.{
+            "src/vulkman.cpp",
+        },
+        .flags = &.{
+            "-std=c++20",
+            "-Wall",
+            "-Werror",
+        },
+    });
 
     b.installArtifact(vulkman);
+
+    const vulkman_run_cmd = b.addRunArtifact(vulkman);
 
     const triangle = b.addExecutable(.{
         .name = "triangle",
@@ -94,8 +36,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .linkage = .dynamic,
     });
-
-    const vulkman_run_cmd = b.addRunArtifact(vulkman);
 
     triangle.linkLibCpp();
     triangle.linkSystemLibrary("vulkan");
