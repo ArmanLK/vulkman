@@ -18,12 +18,6 @@ const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-#ifdef NDEBUG
-#undef VULKMAN_ENABLE_VALIDATION_LAYERS
-#else
-#define VULKMAN_ENABLE_VALIDATION_LAYERS
-#endif
-
 bool check_validation_layer_support() {
     auto v = vk::enumerateInstanceLayerProperties();
 
@@ -88,7 +82,10 @@ int main() {
     });
 
     vk::Instance instance;
-    optional<vk::DebugUtilsMessengerEXT> debug_messenger = {};
+
+#ifdef VULKMAN_ENABLE_VALIDATION_LAYERS
+    vk::DebugUtilsMessengerEXT debug_messenger;
+#endif
 
     {
         uint32_t glfwExtensionCount = 0;
@@ -109,7 +106,7 @@ int main() {
 
         debug_messenger = vk::DebugUtilsMessengerEXT();
 #else
-        auto in = vman::Instance();
+        auto in = vman::Instance(extensions);
 #endif
     }
 
@@ -122,6 +119,5 @@ int main() {
         return -1;
     }
 
-    auto ph_device = vman::pick_physical_device(instance);
-    auto device = vman::create_logical_device(instance, ph_device);
+    auto device = vman::create_logical_device(instance);
 }
