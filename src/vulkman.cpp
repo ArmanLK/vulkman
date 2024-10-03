@@ -1,6 +1,5 @@
 #include <cassert>
 #include <iostream>
-#include <optional>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -9,7 +8,6 @@
 #include "vk_init.hpp"
 
 using std::cerr;
-using std::optional;
 using std::runtime_error;
 using std::vector;
 
@@ -18,6 +16,7 @@ const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
+#ifdef VULKMAN_ENABLE_VALIDATION_LAYERS
 bool check_validation_layer_support() {
     auto v = vk::enumerateInstanceLayerProperties();
 
@@ -67,6 +66,7 @@ debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 
     return VK_FALSE;
 }
+#endif
 
 int main() {
 
@@ -97,16 +97,17 @@ int main() {
 
 #ifdef VULKMAN_ENABLE_VALIDATION_LAYERS
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        auto in = vman::Instance(extensions, debug_callback);
 
         if (!check_validation_layer_support()) {
             throw runtime_error(
                 "validation layer requested but not available!");
         }
 
-        debug_messenger = vk::DebugUtilsMessengerEXT();
+        auto in = vman::Instance(extensions, debug_callback);
+        instance = in.instance;
+        debug_messenger = in.debug_messenger;
 #else
-        auto in = vman::Instance(extensions);
+        instance = vman::Instance(extensions).instance;
 #endif
     }
 
@@ -119,5 +120,27 @@ int main() {
         return -1;
     }
 
-    auto device = vman::create_logical_device(instance);
+    auto ph_device = vman::pick_physical_device(instance, raw_surface);
+    auto device = vman::create_logical_device(instance, ph_device, raw_surface);
+
+    auto phd_surface_caps = ph_device.getSurfaceCapabilitiesKHR(raw_surface);
+    auto phd_surface_formats = ph_device.getSurfaceFormatsKHR(raw_surface);
+    auto phd_surface_modes = ph_device.getSurfacePresentModesKHR(raw_surface);
+
+    auto surface_format = phd_surface_formats[0];
+    for (const auto &format : phd_surface_formats) {
+        if (format.format == vk::Format::eB8G8R8A8Srgb &&
+            format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
+            surface_format = format;
+        }
+    }
+
+    auto present_mode = vk::PresentModeKHR::eFifo;
+    for (const auto p_mode : phd_surface_modes) {
+        if (p_mode == vk::PresentModeKHR::eMailbox) {
+        }
+    }
+
+    auto swap_chain =
+        device.createSwapchainKHR(vk::SwapchainCreateInfoKHR({}, raw_surface));
 }

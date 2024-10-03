@@ -67,7 +67,6 @@ vk::PhysicalDevice vman::pick_physical_device(vk::Instance instance,
         }
 
         if (ext_supported) {
-            auto s_caps = device.getSurfaceCapabilitiesKHR(surface);
             auto s_formats = device.getSurfaceFormats2KHR(surface);
             auto s_p_modes = device.getSurfacePresentModesKHR(surface);
 
@@ -124,3 +123,5 @@ vk::Device vman::create_logical_device(vk::Instance instance,
 
     return ph_device.createDevice(create_info);
 }
+
+void init_swapchain_images(vk::Device device, vk::SwapchainKHR swapchain) {}
