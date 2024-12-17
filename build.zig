@@ -127,7 +127,7 @@ pub fn build(b: *std.Build) void {
             "-std=c++17",
             "-Wall",
             "-Werror",
-            "-Iinclude/",
+            "-Isrc/include/",
         },
     });
 

@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [-Iinclude/, -Wall, -std=c++20]

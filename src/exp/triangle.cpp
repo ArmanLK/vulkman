@@ -413,7 +413,6 @@ class TriangleDemo {
         VkDeviceCreateInfo createInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pQueueCreateInfos = queueCreateInfos.data(),
-
         };
         createInfo.queueCreateInfoCount =
             static_cast<uint32_t>(queueCreateInfos.size());
